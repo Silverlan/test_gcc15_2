@@ -1,4 +1,4 @@
-name: CI — install mamba & gcc/gxx
+name: CI — install gcc/g++ with micromamba
 
 on:
   push:
@@ -19,23 +19,17 @@ jobs:
           sudo chmod +x /usr/local/bin/micromamba
           micromamba --version
 
-      - name: Create environment and install mamba
+      - name: Create env 'ci' (python + mamba optional)
         run: |
           micromamba create -y -n ci -c conda-forge python=3.11 mamba
+          micromamba info
 
-      - name: Show python and mamba versions (run each directly)
+      - name: Install gcc/g++ 14.1.0 into env ci (fixed)
         run: |
-          micromamba run -n ci -- python --version
-          micromamba run -n ci -- mamba --version
+          # Use micromamba to install directly into the env; quote the specs to avoid parser issues
+          micromamba install -y -n ci -c conda-forge 'conda-forge::gcc=14.1.0' 'conda-forge::gxx=14.1.0'
 
-      - name: Install gcc/gxx 14.1.0 from conda-forge
+      - name: Verify gcc/g++ inside env
         run: |
-          micromamba run -n ci -- mamba install -y -c conda-forge \
-            conda-forge::gcc=14.1.0 conda-forge::gxx=14.1.0
-
-      - name: Verify gcc/g++ are available inside env
-        run: |
-          micromamba run -n ci -- which gcc || true
-          micromamba run -n ci -- which g++ || true
           micromamba run -n ci -- gcc --version || true
           micromamba run -n ci -- g++ --version || true
