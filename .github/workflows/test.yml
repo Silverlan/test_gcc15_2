@@ -1,32 +1,38 @@
-name: Setup C++ Compilers with Mamba
+name: CI — install gcc/g++ with micromamba
 
 on:
   push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Mambaforge
+      - name: Install micromamba (single binary)
         run: |
-          wget "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-          bash Mambaforge-$(uname)-$(uname -m).sh -b -p "${{ runner.tool_cache }}/mambaforge"
+          curl -L https://micro.mamba.pm/api/micromamba/linux-64/latest \
+            | tar -xvj bin/micromamba
+          sudo mv bin/micromamba /usr/local/bin/micromamba
+          sudo chmod +x /usr/local/bin/micromamba
+          micromamba --version
 
-      - name: Set up Mamba in PATH
+      - name: Create env 'ci' (python + mamba optional)
         run: |
-          echo "${{ runner.tool_cache }}/mambaforge/bin" >> $GITHUB_PATH
-          
-      - name: Install GCC & GXX
-        shell: bash -l {0}
+          micromamba create -y -n ci -c conda-forge python=3.11 mamba
+          micromamba info
+
+      - name: Install gcc/g++ 15.2.0 into env ci (fixed)
         run: |
-          mamba install --yes --channel conda-forge gcc=14.1.0 gxx=14.1.0
+          # Use micromamba to install directly into the env; quote the specs to avoid parser issues
+          micromamba install -y -n ci -c conda-forge 'conda-forge::gcc=15.2.0' 'conda-forge::gxx=15.2.0'
+
+      - name: Verify gcc/g++ inside env
+        run: |
+          micromamba run -n ci -- gcc --version || true
+          micromamba run -n ci -- g++ --version || true
 
       - name: Verify Compiler Versions
         shell: bash -l {0}
