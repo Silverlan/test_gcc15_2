@@ -1,4 +1,4 @@
-name: CI — install mamba & packages
+name: CI — install mamba & gcc/gxx
 
 on:
   push:
@@ -11,27 +11,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install micromamba (fast, single binary)
+      - name: Install micromamba (single binary)
         run: |
           curl -L https://micro.mamba.pm/api/micromamba/linux-64/latest \
             | tar -xvj bin/micromamba
           sudo mv bin/micromamba /usr/local/bin/micromamba
-          chmod +x /usr/local/bin/micromamba
+          sudo chmod +x /usr/local/bin/micromamba
           micromamba --version
 
-      - name: Create environment and install mamba into it
+      - name: Create environment and install mamba
         run: |
-          # create env named "ci" and install mamba (and python for convenience)
           micromamba create -y -n ci -c conda-forge python=3.11 mamba
-          # show installed versions
-          micromamba run -n ci -- bash -lc "python --version && mamba --version"
 
-      - name: Use mamba to install gcc/gxx 14.1.0 from conda-forge
+      - name: Show python and mamba versions (run each directly)
         run: |
-          # run mamba inside the "ci" environment to install the requested packages
+          micromamba run -n ci -- python --version
+          micromamba run -n ci -- mamba --version
+
+      - name: Install gcc/gxx 14.1.0 from conda-forge
+        run: |
           micromamba run -n ci -- mamba install -y -c conda-forge \
             conda-forge::gcc=14.1.0 conda-forge::gxx=14.1.0
 
-      - name: Verify gcc/g++ versions
+      - name: Verify gcc/g++ are available inside env
         run: |
-          micromamba run -n ci -- bash -lc "gcc --version || true; g++ --version || true"
+          micromamba run -n ci -- which gcc || true
+          micromamba run -n ci -- which g++ || true
+          micromamba run -n ci -- gcc --version || true
+          micromamba run -n ci -- g++ --version || true
