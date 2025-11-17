@@ -24,10 +24,10 @@ jobs:
           micromamba create -y -n ci -c conda-forge python=3.11 mamba
           micromamba info
 
-      - name: Install gcc/g++ 14.1.0 into env ci (fixed)
+      - name: Install gcc/g++ 15.2.0 into env ci (fixed)
         run: |
           # Use micromamba to install directly into the env; quote the specs to avoid parser issues
-          micromamba install -y -n ci -c conda-forge 'conda-forge::gcc=14.1.0' 'conda-forge::gxx=14.1.0'
+          micromamba install -y -n ci -c conda-forge 'conda-forge::gcc=15.2.0' 'conda-forge::gxx=15.2.0'
 
       - name: Verify gcc/g++ inside env
         run: |
