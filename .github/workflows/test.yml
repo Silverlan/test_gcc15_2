@@ -1,4 +1,4 @@
-name: Install GCC 15
+name: Build and Install GCC 15 from Source
 
 on:
   push:
@@ -13,13 +13,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Add GCC PPA
+      - name: Install build dependencies
         run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt-get update
+          sudo apt-get install -y build-essential libgmp-dev libmpfr-dev libmpc-dev
+
+      - name: Clone GCC source code
+        # Using the GitHub mirror is often faster/more reliable in CI
+        run: git clone --depth=1 https://github.com/gcc-mirror/gcc.git gcc-source
+
+      - name: Download GCC prerequisites
+        working-directory: ./gcc-source
+        run: ./contrib/download_prerequisites
+
+      - name: Configure GCC build
+        run: |
+          mkdir gcc-build
+          cd gcc-build
+          # Configure for C/C++, disable multilib for faster build, and set a clean install prefix
+          ../gcc-source/configure --enable-languages=c,c++ --disable-multilib --prefix=/usr/local/gcc-15
+
+      - name: Build GCC
+        working-directory: ./gcc-build
+        # Use all available cores to speed up the build
+        run: make -j$(nproc)
+
+      - name: Install GCC
+        working-directory: ./gcc-build
+        run: sudo make install
+
+      - name: Add GCC to PATH for subsequent steps
+        run: echo "/usr/local/gcc-15/bin" >> $GITHUB_PATH
       
-      - name: Install GCC 15
-        run: sudo apt-get install -y gcc-15 g++-15
+      - name: Update linker path
+        run: |
+          echo "/usr/local/gcc-15/lib64" | sudo tee /etc/ld.so.conf.d/gcc-15.conf
+          sudo ldconfig
 
       - name: Check GCC version
-        run: gcc-15 --version
+        run: |
+          gcc --version
+          g++ --version
